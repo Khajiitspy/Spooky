@@ -21,3 +21,9 @@ Migrations:
 		py manage.py makemigrations
 	Commit migration:
 		py manage.py migrate
+
+Create Projects:
+	python manage.py startapp <name>
+
+Create superuser:
+	python manage.py createsuperuser
