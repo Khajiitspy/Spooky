@@ -1,0 +1,29 @@
+Create .venv:
+	py -m venv .venv
+Activate .venv:
+	source .venv/bin/activate
+
+Update pip:
+	python.exe -m pip install --upgrade pip
+
+To run the app:
+ go the project directory and write:
+	python manage.py runserver 4099
+
+For convenient library work:
+	To save the libraries:
+		pip freeze > requirements.txt
+	To load librarires and install them:
+		pip install -r requirments.txt
+
+Migrations:
+	Make migration:
+		py manage.py makemigrations
+	Commit migration:
+		py manage.py migrate
+
+Create Projects:
+	python manage.py startapp <name>
+
+Create superuser:
+	python manage.py createsuperuser

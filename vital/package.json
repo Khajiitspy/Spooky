@@ -10,14 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/material": "^7.3.4",
+    "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/vite": "^4.1.14",
+    "antd": "^5.27.4",
+    "antd-img-crop": "^4.25.0",
     "axios": "^1.12.2",
+    "object-to-formdata": "^4.5.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-easy-crop": "^5.5.3",
+    "react-redux": "^9.2.0",
+    "react-router": "^7.9.3",
     "react-router-dom": "^7.9.3",
     "tailwindcss": "^4.1.14"
   },

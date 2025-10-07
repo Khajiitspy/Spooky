@@ -37,9 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
-    "users",
-    "corsheaders",
+    'rest_framework',
+    'drf_spectacular',
+    'users',
+    "corsheaders"
 ]
 
 MIDDLEWARE = [
@@ -130,6 +131,10 @@ AUTH_USER_MODEL = 'users.CustomUser'
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+
+IMAGES_URL = '/images/'
+
+IMAGES_ROOT = BASE_DIR / 'images'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
