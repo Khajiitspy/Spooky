@@ -7,14 +7,14 @@ import {serialize} from "object-to-formdata";
 
 export const userService = createApi({
     reducerPath: 'userService',
-    baseQuery: createBaseQuery('users'),
+    baseQuery: createBaseQuery(''),
     tagTypes: ['Users'],
 
     endpoints: (builder) => ({
         getUsers: builder.query<IUserItem[], void>({
             query: () => {
                 return {
-                    url: '',
+                    url: 'users/',
                     method: 'GET'
                 };
             },
@@ -25,18 +25,25 @@ export const userService = createApi({
                 const formData = serialize(credentials);
 
                 return {
-                    url: 'register/',
+                    url: 'users/register/',
                     method: 'POST',
                     body: formData
                 };
             },
             invalidatesTags: ["Users"]
         }),
-
+        login: builder.mutation({
+          query: (data) => ({
+            url: 'auth/token/',
+            method: 'POST',
+            body: data,
+          }),
+        }),
     }),
 });
 
 export const {
     useGetUsersQuery,
     useRegisterMutation,
+    useLoginMutation,
 } = userService;
