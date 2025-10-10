@@ -1,11 +1,15 @@
-import {fetchBaseQuery} from "@reduxjs/toolkit/query";
-import {APP_ENV} from "../env";
+import { fetchBaseQuery } from "@reduxjs/toolkit/query";
+import { APP_ENV } from "../env";
 import type { RootState } from "../store";
 
-// export const createBaseQuery = (endpoint: string) =>
-//     fetchBaseQuery({
-//         baseUrl: `${APP_ENV.API_BASE_URL}/api/${endpoint}/`,
-//     });
+const PUBLIC_ENDPOINTS = [
+  'login/',
+  'register/',
+  'password-reset-request/',
+  'password-reset-confirm/',
+  'generate/',
+];
+
 export const createBaseQuery = (apiPrefix: string) => {
   const baseUrl = apiPrefix
     ? `${APP_ENV.API_BASE_URL}/api/${apiPrefix}/`
@@ -13,13 +17,19 @@ export const createBaseQuery = (apiPrefix: string) => {
 
   return fetchBaseQuery({
     baseUrl,
-    prepareHeaders: (headers, { getState }) => {
+    prepareHeaders: (headers, { getState, endpoint }) => {
       const token = (getState() as RootState).auth.access;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+
+      // Skip attaching token to public endpoints
+      const skipAuth = PUBLIC_ENDPOINTS.some((publicUrl) =>
+        endpoint.endsWith(publicUrl.replace('/', '')) // RTK endpoint name === builder key
+      );
+
+      if (!skipAuth && token) {
+        headers.set("Authorization", `Bearer ${token}`);
       }
+
       return headers;
     },
   });
 };
-

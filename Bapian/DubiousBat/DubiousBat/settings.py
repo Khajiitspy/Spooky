@@ -43,6 +43,13 @@ INSTALLED_APPS = [
     "corsheaders"
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # має бути якомога вище
     "django.middleware.common.CommonMiddleware",
@@ -141,10 +148,19 @@ IMAGES_ROOT = BASE_DIR / 'images'
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your_email@gmail.com'
-EMAIL_HOST_PASSWORD = 'your_app_password'  # generate app-specific password in Google
+MAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.ukr.net'
+EMAIL_PORT = 2525 
+EMAIL_USE_SSL = True 
+EMAIL_HOST_USER = 'super.novakvova@ukr.net'
+EMAIL_HOST_PASSWORD = 'j22yJ7sD5PAb4ewk'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+FRONTEND_URL='http://localhost:5173'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'DjangoApi',
+    'DESCRIPTION': 'Django REST API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

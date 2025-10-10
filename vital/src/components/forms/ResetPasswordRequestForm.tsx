@@ -1,22 +1,18 @@
 import {Form, Input, Button, type FormProps} from "antd";
-import {useLoginMutation} from "../../services/userService.ts";
-import {useDispatch} from "react-redux";
-import {setTokens} from "../../store/authSlice.ts";
-import {Link, useNavigate} from "react-router";
-import type {ILoginRequest} from "../../types/users/ILoginRequest.ts";
+import {useResetPasswordRequestMutation} from "../../services/userService.ts";
+import {useNavigate} from "react-router";
+import type {IResetPasswordRequest} from "../../types/users/IResetPasswordRequest.ts";
 
-const LoginForm: React.FC = () => {
+const ResetPasswordRequestForm: React.FC = () => {
     const [form] = Form.useForm();
-    const [login, { isLoading }] = useLoginMutation();
-    const dispatch = useDispatch();
+    const [resetRequest, { isLoading }] = useResetPasswordRequestMutation();
     const navigate = useNavigate();
 
-    const onFinish: FormProps<ILoginRequest>["onFinish"] = async (values) => {
+    const onFinish: FormProps<IResetPasswordRequest>["onFinish"] = async (values) => {
         try {
-            const result = await login(values).unwrap();
-            console.log(result);
-            dispatch(setTokens(result));
-            navigate('/');
+            const result = await resetRequest(values).unwrap();
+            console.log(result)
+            navigate('/success-confirm');
         } catch (err: any) {
             const errorMessage = err?.data?.errors?.Name?.[0];
             console.error(errorMessage);
@@ -41,16 +37,6 @@ const LoginForm: React.FC = () => {
                 <Input placeholder="johnsmith@example.com" />
             </Form.Item>
 
-            <Form.Item
-                label="Password"
-                name="password"
-                rules={[{ required: true, message: "Please enter your password" }]}
-            >
-                <Input.Password placeholder="********" />
-            </Form.Item>
-
-            <Link to="/forgot-password">Forgot password?</Link>
-
             <Form.Item>
                 <Button
                     type="primary"
@@ -59,11 +45,11 @@ const LoginForm: React.FC = () => {
                     block
                     style={{ height: "40px", fontWeight: 600 }}
                 >
-                    Login
+                    Reset
                 </Button>
             </Form.Item>
         </Form>
     );
 };
 
-export default LoginForm;
+export default ResetPasswordRequestForm;
