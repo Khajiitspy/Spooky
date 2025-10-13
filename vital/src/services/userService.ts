@@ -35,6 +35,13 @@ export const userService = createApi({
             },
             invalidatesTags: ["Users"]
         }),
+        googleRegister: builder.mutation<ILoginResponse, { token: string }>({
+            query: (body) => ({
+                url: 'googleregister/',
+                method: 'POST',
+                body,
+            }),
+        }),
         resetPasswordRequest: builder.mutation<void, IResetPasswordRequest>({
             query: (credentials) => {
                 const formData = serialize(credentials);
@@ -62,20 +69,32 @@ export const userService = createApi({
                 return {
                     url: 'login/',
                     method: 'POST',
-                    body: credentials,  // Send JSON instead
+                    body: credentials,
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 }
             }
-        })
+        }),
+        loginByGoogle: builder.mutation<ILoginResponse, { token: string }>({
+            query: ({ token }) => ({
+                url: 'googleLogin2/',
+                method: 'POST',
+                body: { token },
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }),
+        }),
     }),
 });
 
 export const {
     useGetUsersQuery,
     useRegisterMutation,
+    useGoogleRegisterMutation,
     useLoginMutation,
+    useLoginByGoogleMutation,
     useResetPasswordRequestMutation,
     useResetPasswordMutation,
 } = userService;

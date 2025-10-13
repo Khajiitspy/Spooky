@@ -164,3 +164,6 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+RECAPTCHA_SECRET_KEY = "6Ld4neYrAAAAAHq_zdEdKoUZA_G1npNF9QgQf2c9"
+GOOGLE_CLIENT_ID = "156685535196-s7n5vdbie6gbpmj1ilmuo4bls07082r9.apps.googleusercontent.com"

@@ -8,6 +8,11 @@ from .serializers import UserSerializer, RegisterSerializer, PasswordResetReques
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework_simplejwt.views import TokenObtainPairView
+from .utils import verify_recaptcha, verify_google_token
+from django.core.files.base import ContentFile
+import requests
+from django.core.files.uploadedfile import SimpleUploadedFile
+import uuid
  
 FIRST_NAMES = ["Alice", "Bob", "Charlie", "Diana", "Eve", "Frank"]
 LAST_NAMES = ["Smith", "Johnson", "Brown", "Taylor", "Anderson", "Lee"]
@@ -41,7 +46,7 @@ def generate_random_users(n=5):
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
-    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+    parser_classes = [parsers.JSONParser, parsers.MultiPartParser, parsers.FormParser]
 
     @action(detail=False, methods=["post"])
     def generate(self, request):
@@ -51,6 +56,16 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['post'], url_path='register', serializer_class=RegisterSerializer)
     def register(self, request):
+
+        recaptcha_token = request.data.get("recaptcha_token")
+        if not recaptcha_token:
+            return Response({"detail": "Missing reCAPTCHA token"}, status=400)
+
+        result = verify_recaptcha(recaptcha_token)
+        if not result.get("success") or result.get("score", 0) < 0.5:
+            return Response({"detail": "Invalid reCAPTCHA"}, status=400)
+
+
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -94,10 +109,106 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         user.save()
         return Response({"detail": "Пароль успішно змінено"}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["post"], url_path="googleregister")
+    def google_register(self, request):
+        token = request.data.get("token")
+
+        if not token:
+            return Response({"detail": "Missing Google token"}, status=400)
+
+        user_info = verify_google_token(token)
+
+        if not user_info:
+            return Response({"detail": "Invalid Google token"}, status=400)
+
+        email = user_info.get("email")
+        username = email.split("@")[0]
+        first_name = user_info.get("given_name", "")
+        last_name = user_info.get("family_name", "")
+        picture_url = user_info.get("picture")
+
+        user = CustomUser.objects.filter(email=email).first()
+        if user:
+            return Response({"detail": "User already exists"}, status=400)
+
+        image_file = None
+        if picture_url:
+            try:
+                response = requests.get(picture_url)
+                if response.status_code == 200:
+                    file_name = f"{uuid.uuid4()}.jpg"
+                    image_file = SimpleUploadedFile(
+                        name=file_name,
+                        content=response.content,
+                        content_type="image/jpeg"
+                    )
+            except Exception as e:
+                print("Image fetch failed:", e)
+
+        user = CustomUser.objects.create_user(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+        )
+
+        if image_file:
+            user.image_small = image_file
+            user.save()
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=False, methods=["post"], url_path="googleLogin2")
+    def google_login(self, request):
+        token = request.data.get("token")
+
+        if not token:
+            return Response({"detail": "Missing Google token"}, status=400)
+
+        user_info = verify_google_token(token)
+
+        if not user_info:
+            return Response({"detail": "Invalid Google token"}, status=400)
+
+        email = user_info.get("email")
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "User not registered"}, status=400)
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+            status=status.HTTP_200_OK
+        )
+
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-    @action(detail=False, methods=["post"])
     def post(self, request, *args, **kwargs):
-        print("Login POST hit") 
-        return super().post(request, *args, **kwargs)
+        recaptcha_token = request.data.get("recaptcha_token")
+        if not recaptcha_token:
+            return Response({"detail": "Missing reCAPTCHA token"}, status=400)
+
+        result = verify_recaptcha(recaptcha_token)
+        if not result.get("success") or result.get("score", 0) < 0.5:
+            return Response({"detail": "Invalid reCAPTCHA"}, status=400)
+
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            return Response({"detail": "Invalid credentials"}, status=401)
+
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)

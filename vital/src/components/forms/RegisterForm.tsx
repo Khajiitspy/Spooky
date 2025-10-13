@@ -1,19 +1,23 @@
 import React, {useState} from "react";
-import {Form, Input, Button, Row, Col, type UploadFile, type FormProps} from "antd";
-import {useRegisterMutation} from "../../services/userService.ts";
+import {Form, Input, Button, Row, Col, type UploadFile, type FormProps, message} from "antd";
+import {useGoogleRegisterMutation, useRegisterMutation} from "../../services/userService.ts";
 import type {IUserRegister} from "../../types/users/IUserRegister.ts";
 import ImageUploader from "../uploaders/ImageUploader.tsx";
 import {useDispatch} from "react-redux";
 import {setTokens} from "../../store/authSlice.ts";
 import {useNavigate} from "react-router";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import {GoogleLogin} from "@react-oauth/google";
 
 const RegisterForm: React.FC = () => {
     const [form] = Form.useForm();
     const [register, { isLoading }] = useRegisterMutation();
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [imageError, setImageError] = useState(false);
+    const [googleRegister] = useGoogleRegisterMutation();
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const {executeRecaptcha} = useGoogleReCaptcha();
 
     const onFinish: FormProps<IUserRegister>["onFinish"] = async (values) => {
         if (fileList.length === 0 || !fileList[0]?.originFileObj) {
@@ -21,9 +25,14 @@ const RegisterForm: React.FC = () => {
             return;
         }
 
+        if(!executeRecaptcha) return;
+
+        const token = await executeRecaptcha('register');
+
         const userRegister: IUserRegister = {
             ...values,
             image: fileList[0].originFileObj,
+            recaptcha_token: token,
         };
 
         try {
@@ -110,15 +119,44 @@ const RegisterForm: React.FC = () => {
             </Form.Item>
 
             <Form.Item>
-                <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={isLoading}
-                    block
-                    style={{ height: "40px", fontWeight: 600 }}
-                >
-                    REGISTER NOW
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={isLoading}
+                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition"
+                    >
+                        Увійти
+                    </Button>
+
+                    <div className="w-full sm:w-auto">
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                const { credential: id_token } = credentialResponse;
+
+                                if (!id_token) {
+                                    console.error('No ID token received');
+                                    return;
+                                }
+
+                                try {
+                                    const result = await googleRegister({ token: id_token }).unwrap();
+                                    dispatch(setTokens(result));
+                                    navigate('/');
+                                } catch (err) {
+                                    console.error("Google registration failed:", err);
+                                    message.error("Реєстрація через Google не вдалася");
+                                }
+                            }}
+                            onError={() => {
+                                message.error("Google login failed");
+                            }}
+                            size="medium"
+                            theme="outline"
+                            width="100%"
+                        />
+                    </div>
+                </div>
             </Form.Item>
         </Form>
     );
