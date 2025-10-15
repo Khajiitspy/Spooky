@@ -2,14 +2,16 @@ import {configureStore} from "@reduxjs/toolkit";
 import {type TypedUseSelectorHook, useDispatch, useSelector} from "react-redux";
 import {userService} from "../services/userService";
 import authSlice from "./authSlice";
+import {topicService} from "../services/topicService";
 
 export const store = configureStore({
     reducer: {
+        [topicService.reducerPath]: topicService.reducer,
         [userService.reducerPath]: userService.reducer,
         auth: authSlice,
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware()
-        .concat(userService.middleware),
+        .concat(userService.middleware, topicService.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

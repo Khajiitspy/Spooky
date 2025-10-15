@@ -10,6 +10,7 @@ import LoginPage from './pages/users/Login/';
 import ForgotPasswordPage from './pages/users/ResetPasswordPage/ForgotPasswordPage.tsx';
 import ResetPasswordPage from './pages/users/ResetPasswordPage/ResetPasswordPage.tsx';
 import SuccessPage from './pages/users/ResetPasswordPage/SuccessPage.tsx';
+import TopicsListPage from './pages/topics/TopicListPage/index.tsx'; 
 
 const { Content } = Layout;
 
@@ -21,6 +22,7 @@ function App() {
             <Content style={{ padding: '24px' }}>
                 <Routes>
                     <Route path="/" element={<UsersListPage />} />
+                    <Route path="/topics" element={<TopicsListPage />} />
                     <Route path="/register" element={<UserRegisterPage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />

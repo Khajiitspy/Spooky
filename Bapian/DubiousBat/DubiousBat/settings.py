@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'users',
+    'topics',
+    'django_filters',
     "corsheaders"
 ]
 
@@ -48,6 +50,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
 MIDDLEWARE = [
@@ -101,6 +104,16 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'HOST': 'ep-lingering-river-agujhtt0-pooler.c-2.eu-central-1.aws.neon.tech',
+#         'NAME': 'neondb',
+#         'USER': 'neondb_owner',
+#         'PASSWORD': 'npg_0sy9cvMGVWri',
+#         'PORT': '5432'
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
