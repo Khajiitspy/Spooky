@@ -1,114 +1,127 @@
-import React from "react";
-import { message, Form, Input, Button } from "antd";
-import { useLoginMutation, useLoginByGoogleMutation } from "../../services/userService.ts";
-import { useDispatch } from "react-redux";
-import { setTokens } from "../../store/authSlice.ts";
-import { useNavigate } from "react-router";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import {GoogleLogin} from "@react-oauth/google";
-
+import {useMemo, useState} from "react";
+import {useLoginMutation} from "../../services/userService.ts";
+import {useDispatch} from "react-redux";
+import {setTokens} from "../../store/authSlice.ts";
+import {Link, useNavigate} from "react-router-dom";
+import {useGoogleReCaptcha} from "react-google-recaptcha-v3";
+import InputField from "../inputs/InputField"; // We'll define this below
+import type {ILoginRequest} from "../../types/users/ILoginRequest";
 
 const LoginForm: React.FC = () => {
-    const [form] = Form.useForm();
-    const [login, { isLoading }] = useLoginMutation();
-    const [loginByGoogle ] = useLoginByGoogleMutation();
+    const [login, {isLoading}] = useLoginMutation();
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const {executeRecaptcha} = useGoogleReCaptcha();
 
-    const onFinish = async (values: { username: string; password: string }) => {
+    const [formData, setFormData] = useState<ILoginRequest>({
+        username: '',
+        password: '',
+    });
+
+    const [errors, setErrors] = useState<{ [key in keyof ILoginRequest]?: string }>({});
+
+    const usernameRules = useMemo(() => [
+        {
+            rule: 'required',
+            message: "Username is required"
+        },
+    ], []);
+
+    const passwordRules = useMemo(() => [
+        {
+            rule: 'required',
+            message: "Пароль є обов'язковим"
+        },
+    ], []);
+
+
+    const validationChange = (isValid: boolean, key: string) => {
+        setErrors((prevErrors) => {
+            const updated = {...prevErrors};
+            if (isValid) {
+                delete updated[key as keyof ILoginRequest];
+            } else {
+                updated[key as keyof ILoginRequest] = "Invalid value";
+            }
+            return updated;
+        });
+    };
+
+    const validate = (): boolean => {
+        const newErrors: typeof errors = {};
+
+        if (!formData.username) {
+            newErrors.username = "Username is required";
+        } 
+
+        if (!formData.password) {
+            newErrors.password = "Password is required";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleChange = (field: keyof ILoginRequest, value: string) => {
+        setFormData(prev => ({...prev, [field]: value}));
+        setErrors(prev => ({...prev, [field]: undefined}));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!validate()) return;
+
         try {
-            if(!executeRecaptcha) return;
+            if (!executeRecaptcha) return;
+            const token = await executeRecaptcha("login");
 
-            const token = await executeRecaptcha('register');
-
-            const result = await login({...values, recaptcha_token: token}).unwrap();
+            const result = await login({...formData, recaptcha_token: token}).unwrap();
             dispatch(setTokens(result));
             navigate("/");
-        } catch (error: any) {
-            console.error("Login failed", error);
-            form.setFields([
-                {
-                    name: 'username',
-                    errors: ['Invalid credentials'],
-                },
-            ]);
+        } catch (err: any) {
+            console.error(err?.data?.message || "Login failed");
         }
     };
 
-    // const loginUseGoogle = useGoogleLogin({
-    //     onSuccess: async (tokenResponse) =>
-    //     {
-    //         try {
-    //             const result = await loginByGoogle({token: tokenResponse.access_token}).unwrap();
-    //             dispatch(setTokens(result));
-    //             navigate('/');
-    //         } catch (error) {
-
-    //             console.log("User server error auth", error);
-    //         }
-    //     },
-    // });
-
     return (
-        <Form form={form} layout="vertical" onFinish={onFinish}>
-            <Form.Item
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <InputField
                 label="Username"
                 name="username"
-                rules={[{ required: true, message: "Please enter your username" }]}
+                type="text"
+                placeholder="Please enter your username"
+                value={formData.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+                rules={usernameRules}
+                onValidationChange={validationChange}
+            />
+
+            <InputField
+                label={"Password"}
+                name={"password"}
+                type={"password"}
+                placeholder="Please enter your password"
+                value={formData.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                rules={passwordRules}
+                onValidationChange={validationChange}
+            />
+
+            <div className="flex justify-between items-center">
+                <Link to="/forgot-password" className="text-sm text-blue-500 hover:underline">
+                    Forgot password?
+                </Link>
+            </div>
+
+            <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold hover:bg-blue-700 transition"
             >
-                <Input placeholder="Username" />
-            </Form.Item>
-
-            <Form.Item
-                label="Password"
-                name="password"
-                rules={[{ required: true, message: "Please enter your password" }]}
-            >
-                <Input.Password placeholder="Password" />
-            </Form.Item>
-
-            <Form.Item>
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={isLoading}
-                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition"
-                    >
-                        Увійти
-                    </Button>
-
-                    <div className="w-full sm:w-auto">
-                        <GoogleLogin
-                            onSuccess={async (credentialResponse) => {
-                                const { credential: id_token } = credentialResponse;
-
-                                if (!id_token) {
-                                    console.error('No ID token received');
-                                    return;
-                                }
-
-                                try {
-                                    const result = await loginByGoogle({ token: id_token }).unwrap();
-                                    dispatch(setTokens(result));
-                                    navigate('/');
-                                } catch (err) {
-                                    console.error("Google login failed:", err);
-                                    message.error("Login через Google не вдався");
-                                }
-                            }}
-                            onError={() => {
-                                message.error("Google login failed");
-                            }}
-                            size="medium"
-                            theme="outline"
-                            width="100%"
-                        />
-                    </div>
-                </div>
-            </Form.Item>
-        </Form>
+                {isLoading ? "Logging in..." : "Login"}
+            </button>
+        </form>
     );
 };
 

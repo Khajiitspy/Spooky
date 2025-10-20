@@ -1,6 +1,6 @@
-import {createApi} from '@reduxjs/toolkit/query/react';
-import {createBaseQuery} from '../utils/createBaseQuery';
-import type {ITopicItem} from '../types/topics/ITopicItem';
+import {createApi} from "@reduxjs/toolkit/query/react";
+import {createBaseQuery} from "../utils/createBaseQuery";
+import type {IParentTopic} from "../types/topics/IParentTopic.ts";
 
 export const topicService = createApi({
     reducerPath: 'topicService',
@@ -8,17 +8,19 @@ export const topicService = createApi({
     tagTypes: ['Topics'],
 
     endpoints: (builder) => ({
-        // all topics
-        getTopics: builder.query<ITopicItem[], void>({
-            query: () => ({
-                url: '',
-                method: 'GET',
-            }),
-            providesTags: ['Topics'],
-        }),
 
+        // all topics
+        getTopics: builder.query<IParentTopic[], void>({
+            query: () => {
+                return {
+                    url: '',
+                    method: 'GET'
+                };
+            },
+            providesTags: ["Topics"]
+        }),
         // root topics only
-        getRootTopics: builder.query<ITopicItem[], void>({
+        getRootTopics: builder.query<IParentTopic[], void>({
             query: () => ({
                 url: '?parent=null',
                 method: 'GET',
@@ -29,6 +31,5 @@ export const topicService = createApi({
 });
 
 export const {
-    useGetTopicsQuery,
-    useGetRootTopicsQuery,
+    useGetTopicsQuery, useGetRootTopicsQuery
 } = topicService;
