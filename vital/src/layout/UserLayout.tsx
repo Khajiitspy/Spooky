@@ -33,6 +33,13 @@ const UserLayout: React.FC = () => {
                 <div className="flex items-center gap-4">
                     {user ? (
                         <>
+                            <Link
+                                to="/create-post"
+                                className="bg-purple-500 dark:bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-600 dark:hover:bg-purple-700 transition"
+                            >
+                                + Створити
+                            </Link>
+
                             <div className="flex items-center gap-3">
                                 {user.image && (
                                     <img
@@ -55,6 +62,7 @@ const UserLayout: React.FC = () => {
                             </button>
                         </>
                     ) : (
+
                         <>
                             <Link
                                 to="/login"

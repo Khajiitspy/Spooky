@@ -5,14 +5,14 @@ import type { UploadFile, UploadProps, GetProp } from "antd";
 
 type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
 
-interface ImageUploaderProps {
+interface Props {
     fileList: UploadFile[];
     setFileList: (files: UploadFile[]) => void;
     imageError?: boolean;
     setImageError?: (value: boolean) => void;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({
+const ImagesUploader: React.FC<Props> = ({
                                                          fileList,
                                                          setFileList,
                                                          imageError,
@@ -78,4 +78,4 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     );
 };
 
-export default ImageUploader;
+export default ImagesUploader;

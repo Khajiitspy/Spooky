@@ -1,200 +1,146 @@
-import React, { useState, useMemo } from "react";
-import { useRegisterMutation } from "../../services/userService";
+import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { setTokens } from "../../store/authSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import InputField from "../inputs/InputField";
-import ImageUploader from "../uploaders/ImageUploader";
-import type { IUserRegister } from "../../types/users/IUserRegister";
-import type { UploadFile } from "antd";
+
+import { useRegisterMutation } from "../../services/userService.ts";
+import { setTokens } from "../../store/authSlice.ts";
+import InputField from "../inputs/InputField.tsx";
+import BaseButton from "../buttons/BaseButton.tsx";
+import ImageUploader from "../uploaders/ImageUploader.tsx";
+import type { IUserRegister } from "../../types/users/IUserRegister.ts";
+import type { UploadFile } from "antd/es/upload/interface";
 
 const RegisterForm: React.FC = () => {
-    const [formData, setFormData] = useState<IUserRegister>({
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { executeRecaptcha } = useGoogleReCaptcha();
+
+    const [register, { isLoading }] = useRegisterMutation();
+    const [formValues, setFormValues] = useState<IUserRegister>({
         username: "",
         first_name: "",
         last_name: "",
         email: "",
         password: "",
-        image: undefined,
-        recaptcha_token: "",
+        image: null,
+        recaptcha_token: undefined,
     });
-
-    const [errors, setErrors] = useState<Partial<Record<keyof IUserRegister, string>>>({});
+    const [errors, setErrors] = useState<string[]>([]);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [imageError, setImageError] = useState(false);
 
-    const [register, { isLoading }] = useRegisterMutation();
-    const dispatch = useDispatch();
-    const navigate = useNavigate();
-    const { executeRecaptcha } = useGoogleReCaptcha();
-
-    const handleChange = (field: keyof IUserRegister, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        setErrors(prev => ({ ...prev, [field]: undefined }));
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormValues({ ...formValues, [e.target.name]: e.target.value });
     };
 
-    const validationChange = (isValid: boolean, key: string) => {
-        setErrors(prevErrors => {
-            const updated = { ...prevErrors };
-            if (isValid) {
-                delete updated[key as keyof IUserRegister];
-            } else {
-                updated[key as keyof IUserRegister] = "Invalid value";
-            }
-            return updated;
-        });
-    };
-
-    const validateForm = () => {
-        const newErrors: typeof errors = {};
-
-        if (!formData.username) newErrors.username = "Username is required";
-        if (!formData.first_name) newErrors.first_name = "First name is required";
-        if (!formData.last_name) newErrors.last_name = "Last name is required";
-        if (!formData.email) newErrors.email = "Email is required";
-        if (!formData.password) newErrors.password = "Password is required";
-        if (fileList.length === 0 || !fileList[0]?.originFileObj) {
-            setImageError(true);
+    const validationChange = (isValid: boolean, fieldKey: string) => {
+        if (isValid && errors.includes(fieldKey)) {
+            setErrors(errors.filter((x) => x !== fieldKey));
+        } else if (!isValid && !errors.includes(fieldKey)) {
+            setErrors((state) => [...state, fieldKey]);
         }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0 && !imageError;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validateForm()) return;
-        if (!executeRecaptcha) return;
+        if (fileList.length === 0 || !fileList[0]?.originFileObj) {
+            setImageError(true);
+            return;
+        }
 
+        if (!executeRecaptcha) return;
         const token = await executeRecaptcha("register");
 
-        const userRegister: IUserRegister = {
-            ...formData,
-            image: fileList[0].originFileObj!,
+        const payload: IUserRegister = {
+            ...formValues,
+            image: fileList[0].originFileObj,
             recaptcha_token: token,
         };
 
         try {
-            const result = await register(userRegister).unwrap();
+            const result = await register(payload).unwrap();
             dispatch(setTokens(result));
             navigate("/");
         } catch (err: any) {
-            console.error(err?.data?.message || "Registration failed");
+            console.error(err?.data?.errors);
         }
     };
 
-    const emailRules = useMemo(() => [
-        {
-            rule: "required",
-            message: "Email is required",
-        },
-        {
-            rule: "regexp",
-            value: '^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
-            message: "Invalid email format",
-        },
-    ], []);
-
-    const usernameRules = useMemo(() => [
-        { rule: "required", message: "Username is required" }
-    ], []);
-
-    const firstNameRules = useMemo(() => [
-        { rule: "required", message: "First Name is required" }
-    ], []);
-
-    const lastNameRules = useMemo(() => [
-        { rule: "required", message: "Last Name is required" }
-    ], []);
-
-    const passwordRules = useMemo(() => [
-        { rule: "required", message: "Password is required" }
-    ], []);
-
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <InputField
-                label="Username"
-                name="username"
-                value={formData.username}
-                onChange={(e) => handleChange("username", e.target.value)}
-                rules={usernameRules}
-                onValidationChange={validationChange}
-                placeholder="johnsmith"
-            />
-
-            <div className="flex gap-4 flex-col md:flex-row">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InputField
-                    label="First Name"
+                    label="First name"
                     name="first_name"
-                    value={formData.first_name}
-                    onChange={(e) => handleChange("first_name", e.target.value)}
-                    rules={firstNameRules}
+                    placeholder="Pedro"
+                    value={formValues.first_name}
+                    onChange={handleChange}
                     onValidationChange={validationChange}
-                    placeholder="John"
-                    otherStyles="w-full"
+                    rules={[{ rule: "required", message: "First name is required" }]}
                 />
+
                 <InputField
-                    label="Last Name"
+                    label="Last name"
                     name="last_name"
-                    value={formData.last_name}
-                    onChange={(e) => handleChange("last_name", e.target.value)}
-                    rules={lastNameRules}
+                    placeholder="Timchuk"
+                    value={formValues.last_name}
+                    onChange={handleChange}
                     onValidationChange={validationChange}
-                    placeholder="Smith"
-                    otherStyles="w-full"
+                    rules={[{ rule: "required", message: "Last name is required" }]}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField
+                    label="Username"
+                    name="username"
+                    placeholder="pedro"
+                    value={formValues.username}
+                    onChange={handleChange}
+                    onValidationChange={validationChange}
+                    rules={[{ rule: "required", message: "Username is required" }]}
+                />
+
+                <InputField
+                    label="Email"
+                    name="email"
+                    placeholder="pedro@example.com"
+                    value={formValues.email}
+                    onChange={handleChange}
+                    onValidationChange={validationChange}
+                    rules={[
+                        { rule: "required", message: "Email is required" },
+                        { rule: "regexp", value: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$', message: "Email is invalid" },
+                    ]}
                 />
             </div>
 
             <InputField
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                rules={emailRules}
-                onValidationChange={validationChange}
-                placeholder="john@example.com"
-            />
-
-            <InputField
                 label="Password"
-                name="password"
                 type="password"
-                value={formData.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                rules={passwordRules}
-                onValidationChange={validationChange}
+                name="password"
                 placeholder="********"
+                value={formValues.password}
+                onChange={handleChange}
+                onValidationChange={validationChange}
+                rules={[{ rule: "required", message: "Password is required" }]}
             />
 
-            <div className={`w-full mb-4`}>
-                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Profile Image
-                </label>
+            <div className="w-full text-center">
                 <ImageUploader
                     fileList={fileList}
                     setFileList={setFileList}
                     imageError={imageError}
                     setImageError={setImageError}
                 />
-                {imageError && (
-                    <div className="p-1 text-sm text-red-800 dark:text-red-400" role="alert">
-                        <span className="font-medium">Image is required</span>
-                    </div>
-                )}
+                {imageError && <p className="text-red-500 text-sm mt-1">Image is required</p>}
             </div>
 
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold hover:bg-blue-700 transition"
-            >
-                {isLoading ? "Registering..." : "Register"}
-            </button>
+            <BaseButton type="submit" className="w-full rounded-xl !bg-purple-500 dark:!bg-gray-900 text-white font-medium py-2">
+                {isLoading ? "Loading..." : "Register"}
+            </BaseButton>
         </form>
     );
 };

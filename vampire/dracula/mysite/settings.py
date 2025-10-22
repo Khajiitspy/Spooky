@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'widget_tweaks'
+    'widget_tweaks',
+    'posts',
 ]
 
 MIDDLEWARE = [
@@ -131,6 +132,10 @@ STATICFILES_DIRS = [
 IMAGES_URL = '/images/'
 
 IMAGES_ROOT = BASE_DIR / 'images'
+
+VIDEOS_URL = '/videos/'
+
+VIDEOS_ROOT = BASE_DIR / 'videos'
 
 AUTH_USER_MODEL = 'users.CustomUser'
 

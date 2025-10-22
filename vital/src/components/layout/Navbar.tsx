@@ -1,4 +1,3 @@
-// src/components/layout/Navbar.tsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
@@ -10,6 +9,7 @@ import {
     LogoutOutlined,
     FormOutlined,
     UserOutlined,
+    PlusOutlined,
 } from '@ant-design/icons';
 
 const { Header } = Layout;
@@ -44,6 +44,9 @@ const Navbar: React.FC = () => {
                     </>
                 ) : (
                     <>
+                        <Menu.Item key="create-post" icon={<PlusOutlined />}>
+                            <Link to="/create-post">+ Створити</Link>
+                        </Menu.Item>
                         <Menu.Item key="profile" icon={<UserOutlined />}>
                             <Link to="/">Профіль</Link>
                         </Menu.Item>

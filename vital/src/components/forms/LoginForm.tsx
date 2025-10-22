@@ -1,126 +1,134 @@
-import {useMemo, useState} from "react";
-import {useLoginMutation} from "../../services/userService.ts";
-import {useDispatch} from "react-redux";
-import {setTokens} from "../../store/authSlice.ts";
-import {Link, useNavigate} from "react-router-dom";
-import {useGoogleReCaptcha} from "react-google-recaptcha-v3";
-import InputField from "../inputs/InputField"; // We'll define this below
-import type {ILoginRequest} from "../../types/users/ILoginRequest";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { useGoogleLogin } from "@react-oauth/google";
+
+import { useLoginMutation, useLoginByGoogleMutation } from "../../services/userService.ts";
+import { setTokens } from "../../store/authSlice.ts";
+import InputField from "../inputs/InputField.tsx";
+import BaseButton from "../buttons/BaseButton.tsx";
+import type { ILoginRequest } from "../../types/users/ILoginRequest.ts";
+import type { IGoogleLoginRequest } from "../../types/users/IGoogleLoginRequest.ts";
 
 const LoginForm: React.FC = () => {
-    const [login, {isLoading}] = useLoginMutation();
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const {executeRecaptcha} = useGoogleReCaptcha();
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
-    const [formData, setFormData] = useState<ILoginRequest>({
-        username: '',
-        password: '',
+    const [login, { isLoading, error: loginError }] = useLoginMutation();
+    const [loginByGoogle, { isLoading: isGoogleLoading }] = useLoginByGoogleMutation();
+
+    const [formValues, setFormValues] = useState<ILoginRequest>({
+        username: "",
+        password: "",
     });
 
-    const [errors, setErrors] = useState<{ [key in keyof ILoginRequest]?: string }>({});
+    // console.log("Redux Error: ", loginError);
 
-    const usernameRules = useMemo(() => [
-        {
-            rule: 'required',
-            message: "Username is required"
-        },
-    ], []);
+    const [errors, setErrors] = useState<string[]>([]);
 
-    const passwordRules = useMemo(() => [
-        {
-            rule: 'required',
-            message: "Пароль є обов'язковим"
-        },
-    ], []);
-
-
-    const validationChange = (isValid: boolean, key: string) => {
-        setErrors((prevErrors) => {
-            const updated = {...prevErrors};
-            if (isValid) {
-                delete updated[key as keyof ILoginRequest];
-            } else {
-                updated[key as keyof ILoginRequest] = "Invalid value";
+    const loginUseGoogle = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                const model: IGoogleLoginRequest = { token: tokenResponse.access_token };
+                const result = await loginByGoogle(model).unwrap();
+                dispatch(setTokens(result));
+                navigate("/");
+            } catch (error) {
+                console.error(error);
             }
-            return updated;
-        });
-    };
+        },
+    });
 
-    const validate = (): boolean => {
-        const newErrors: typeof errors = {};
-
-        if (!formData.username) {
-            newErrors.username = "Username is required";
-        } 
-
-        if (!formData.password) {
-            newErrors.password = "Password is required";
+    const validationChange = (isValid: boolean, fieldKey: string) => {
+        if (isValid && errors.includes(fieldKey)) {
+            setErrors(errors.filter((x) => x !== fieldKey));
+        } else if (!isValid && !errors.includes(fieldKey)) {
+            setErrors((state) => [...state, fieldKey]);
         }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
     };
 
-    const handleChange = (field: keyof ILoginRequest, value: string) => {
-        setFormData(prev => ({...prev, [field]: value}));
-        setErrors(prev => ({...prev, [field]: undefined}));
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormValues({ ...formValues, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!executeRecaptcha) return;
 
-        if (!validate()) return;
+        const token = await executeRecaptcha("login");
+        const payload: ILoginRequest = { ...formValues, recaptcha_token: token };
+
+        // console.log(payload);
 
         try {
-            if (!executeRecaptcha) return;
-            const token = await executeRecaptcha("login");
-
-            const result = await login({...formData, recaptcha_token: token}).unwrap();
+            const result = await login(payload).unwrap();
             dispatch(setTokens(result));
             navigate("/");
         } catch (err: any) {
-            console.error(err?.data?.message || "Login failed");
+            // console.log("Is a problem");
+            console.error(err?.data?.errors);
         }
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+
+            {loginError && (
+                <>
+                    <div
+                        className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
+                        role="alert">
+                        <span className="font-medium">Дані вказано не вірно</span>
+                    </div>
+                </>
+            )}
             <InputField
                 label="Username"
                 name="username"
-                type="text"
-                placeholder="Please enter your username"
-                value={formData.username}
-                onChange={(e) => handleChange("username", e.target.value)}
-                rules={usernameRules}
+                placeholder="pedro"
+                value={formValues.username}
+                onChange={handleChange}
                 onValidationChange={validationChange}
+                rules={[{ rule: "required", message: "Username is required" }]}
             />
 
             <InputField
-                label={"Password"}
-                name={"password"}
-                type={"password"}
-                placeholder="Please enter your password"
-                value={formData.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                rules={passwordRules}
+                label="Password"
+                type="password"
+                name="password"
+                placeholder="********"
+                value={formValues.password}
+                onChange={handleChange}
                 onValidationChange={validationChange}
+                rules={[{ rule: "required", message: "Password is required" }]}
             />
 
-            <div className="flex justify-between items-center">
-                <Link to="/forgot-password" className="text-sm text-blue-500 hover:underline">
-                    Forgot password?
-                </Link>
-            </div>
-
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold hover:bg-blue-700 transition"
+            <Link
+                to="/forgot-password"
+                className="block text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
             >
-                {isLoading ? "Logging in..." : "Login"}
-            </button>
+                Forgot password?
+            </Link>
+
+            <BaseButton
+                type="submit"
+                className="w-full rounded-xl !bg-purple-500 dark:!bg-gray-900 text-white font-medium py-2"
+            >
+                {isLoading ? "Loading..." : "Login"}
+            </BaseButton>
+
+            <BaseButton
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    loginUseGoogle();
+                }}
+                className="w-full rounded-xl font-medium py-2"
+            >
+                {isGoogleLoading ? "Loading..." : "Login with Google"}
+            </BaseButton>
         </form>
     );
 };

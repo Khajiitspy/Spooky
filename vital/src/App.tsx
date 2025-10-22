@@ -10,6 +10,7 @@ import SuccessPage from './pages/users/ResetPasswordPage/SuccessPage.tsx';
 import TopicsListPage from './pages/topics/TopicListPage/index.tsx'; 
 import UserLayout from './layout/UserLayout.tsx'; 
 import NotFoundPage from './pages/additional/NotFoundPage.tsx'; 
+import CreatePostPage from './pages/posts/CreatePostPage/index.tsx';
 
 function App() {
     return (
@@ -22,6 +23,7 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
                 <Route path="/success-confirm" element={<SuccessPage />} />
+                <Route path="/create-post" element={<CreatePostPage/>} />
             </Route>
             <Route path="*" element={<NotFoundPage/>} />
         </Routes>
