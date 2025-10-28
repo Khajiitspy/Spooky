@@ -1,7 +1,6 @@
-// services/postService.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createBaseQuery } from "../utils/createBaseQuery";
-import type { IPost } from "../types/posts/IPost"; // Optional if you define response types
+// import type { IPost } from "../types/posts/IPost"; // Optional if you define response types
 
 export const postService = createApi({
     reducerPath: "postService",
@@ -9,7 +8,7 @@ export const postService = createApi({
     tagTypes: ["Posts"],
 
     endpoints: (builder) => ({
-        createPost: builder.mutation<IPost, FormData>({
+        createPost: builder.mutation<void,FormData>({
             query: (formData) => ({
                 url: "",
                 method: "POST",

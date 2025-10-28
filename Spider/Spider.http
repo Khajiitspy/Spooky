@@ -1,0 +1,6 @@
+@Spider_HostAddress = http://localhost:5237
+
+GET {{Spider_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
